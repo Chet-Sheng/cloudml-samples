@@ -18,6 +18,8 @@ def run_experiment(hparams):
       num_epochs=hparams.num_epochs,
       batch_size=hparams.train_batch_size
   )
+  # (Chet:) Therefore, train_input() always = model.input_fn(), lambda without variable.
+
 
   # Don't shuffle evaluation data
   eval_input = lambda: model.input_fn(
