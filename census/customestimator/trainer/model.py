@@ -297,7 +297,7 @@ def parse_csv(rows_string_tensor):
       # https://www.tensorflow.org/api_docs/python/tf/decode_csv
 
   features = dict(zip(CSV_COLUMNS, columns))
-
+  # print('features in parse_csv', features)
   # Remove unused columns
   for col in UNUSED_COLUMNS:
     features.pop(col)

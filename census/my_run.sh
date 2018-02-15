@@ -17,7 +17,7 @@ export OUTPUT_DIR=census_$DATE
 # $ + variable name
 
 #Local training
-python3 -m trainer.task --train-files $TRAIN_FILE \
+python3 -m trainer.My_Task --train-files $TRAIN_FILE \
                        --eval-files $EVAL_FILE \
                        --job-dir $OUTPUT_DIR \
                        --train-steps $TRAIN_STEPS \
