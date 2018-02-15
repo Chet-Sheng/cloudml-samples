@@ -1,7 +1,8 @@
 import argparse
 import os
 
-import trainer.model as model
+# import trainer.model as model
+import model as model
 
 import tensorflow as tf
 from tensorflow.contrib.learn import learn_runner
@@ -13,14 +14,11 @@ from tensorflow.contrib.training.python.training import hparam
 def run_experiment(hparams):
   """Run the training and evaluate using the high level API"""
 
-  # lambda here means anonymous function. trian_input is equivalent to this function setting. Not just a value.
   train_input = lambda: model.input_fn(
       hparams.train_files,
       num_epochs=hparams.num_epochs,
       batch_size=hparams.train_batch_size
   )
-  # (Chet:) Therefore, train_input() always = model.input_fn(), lambda without variable.
-
 
   # Don't shuffle evaluation data
   eval_input = lambda: model.input_fn(
@@ -32,7 +30,7 @@ def run_experiment(hparams):
   train_spec = tf.estimator.TrainSpec(train_input,
                                       max_steps=hparams.train_steps
                                       )
-
+  # exporter exports the serving graph and checkpoints at the end of trianing.
   exporter = tf.estimator.FinalExporter('census',
           model.SERVING_FUNCTIONS[hparams.export_format])
   eval_spec = tf.estimator.EvalSpec(eval_input,

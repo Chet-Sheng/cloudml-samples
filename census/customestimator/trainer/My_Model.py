@@ -110,7 +110,6 @@ def generate_model_fn(embedding_size=8,
     for details on the signature of the model_fn.
   """
   def _model_fn(mode, features, labels):
-      # correspond to (features, features.pop(LABEL_COLUMN))
     """A model_fn that builds the DNN classification spec
 
     Args:
@@ -186,9 +185,6 @@ def generate_model_fn(embedding_size=8,
 
       # Use the lookup table to convert string labels to ints
       label_indices = table.lookup(labels)
-      # Returns a lookup table that converts a string tensor into int64 IDs.
-      # https://www.tensorflow.org/api_docs/python/tf/contrib/lookup/index_table_from_tensor
-
       # Make labels a vector
       label_indices_vector = tf.squeeze(label_indices, axis=[1])
 
@@ -285,17 +281,8 @@ SERVING_FUNCTIONS = {
 
 def parse_csv(rows_string_tensor):
   """Takes the string input tensor and returns a dict of rank-2 tensors."""
-  # Takes a rank-1 tensor and converts it into rank-2 tensor
-  # Example if the data is ['csv,line,1', 'csv,line,2', ..] to
-  # [['csv,line,1'], ['csv,line,2']] which after parsing will result in a
-  # tuple of tensors: [['csv'], ['csv']], [['line'], ['line']], [[1], [2]]
-
-  # tf.decode_csv: Convert CSV records to tensors. Each column maps to one tensor.
   columns = tf.decode_csv(
       rows_string_tensor, record_defaults=CSV_COLUMN_DEFAULTS)
-      # A list of Tensor objects. Has the same type as record_defaults. Each tensor will have the same shape as records.
-      # https://www.tensorflow.org/api_docs/python/tf/decode_csv
-
   features = dict(zip(CSV_COLUMNS, columns))
 
   # Remove unused columns
