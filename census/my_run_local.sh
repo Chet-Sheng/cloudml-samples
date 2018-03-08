@@ -18,10 +18,11 @@ export OUTPUT_DIR=census_$DATE
 
 #Local training
 python3 -m trainer.My_Task --train-files $TRAIN_FILE \
-                       --eval-files $EVAL_FILE \
-                       --job-dir $OUTPUT_DIR \
-                       --train-steps $TRAIN_STEPS \
-                       --eval-steps 100
+                           --eval-files $EVAL_FILE \
+                           --job-dir $OUTPUT_DIR \
+                           # --num-epochs 1\
+                           --train-steps $TRAIN_STEPS \
+                           --eval-steps 100
 
 
 
