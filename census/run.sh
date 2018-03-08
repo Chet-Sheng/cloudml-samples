@@ -1,5 +1,5 @@
 # This is bash script. type bash run.sh
-cd customestimator
+cd estimator
 
 GCS_TRAIN_FILE=gs://cloudml-public/census/data/adult.data.csv
 GCS_EVAL_FILE=gs://cloudml-public/census/data/adult.test.csv

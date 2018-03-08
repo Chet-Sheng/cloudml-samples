@@ -226,7 +226,7 @@ def json_serving_input_fn():
   inputs = {}
   for feat in INPUT_COLUMNS:
     inputs[feat.name] = tf.placeholder(shape=[None], dtype=feat.dtype)
-    
+
   return tf.estimator.export.ServingInputReceiver(inputs, inputs)
 # [END serving-function]
 
@@ -282,12 +282,12 @@ def input_fn(filenames,
   if shuffle:
     # Process the files in a random order.
     filename_dataset = filename_dataset.shuffle(len(filenames))
-    
+
   # For each filename, parse it into one element per line, and skip the header
   # if necessary.
   dataset = filename_dataset.flat_map(
       lambda filename: tf.data.TextLineDataset(filename).skip(skip_header_lines))
-  
+
   dataset = dataset.map(parse_csv)
   if shuffle:
     dataset = dataset.shuffle(buffer_size=batch_size * 10)
@@ -295,4 +295,6 @@ def input_fn(filenames,
   dataset = dataset.batch(batch_size)
   iterator = dataset.make_one_shot_iterator()
   features = iterator.get_next()
+  print('features:',features)
+  print('features.pop:',features.pop(LABEL_COLUMN))
   return features, parse_label_column(features.pop(LABEL_COLUMN))
