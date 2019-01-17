@@ -109,6 +109,7 @@ def generate_model_fn(embedding_size=8,
     See https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator
     for details on the signature of the model_fn.
   """
+
   def _model_fn(mode, features, labels):
       # correspond to (features, features.pop(LABEL_COLUMN))
     """A model_fn that builds the DNN classification spec

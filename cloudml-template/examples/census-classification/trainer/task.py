@@ -94,7 +94,7 @@ def initialise_hyper_params(args_parser):
         --train-steps will be: (train-size/train-batch-size) * num-epochs.\
         """,
         default=100,
-        type=int,
+        type=int
     )
     ###########################################
 

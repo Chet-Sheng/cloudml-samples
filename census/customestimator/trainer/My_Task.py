@@ -1,70 +1,84 @@
+# Copyright 2016 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import argparse
 import os
 
-import trainer.My_Model as model
-
 import tensorflow as tf
-from tensorflow.contrib.learn import learn_runner
-from tensorflow.contrib.learn.python.learn.utils import (
-    saved_model_export_utils)
-from tensorflow.contrib.training.python.training import hparam
+
+import trainer.model as model
 
 
-def run_experiment(hparams):
-  """Run the training and evaluate using the high level API"""
-
-  # lambda here means anonymous function. trian_input is equivalent to this function setting. Not just a value.
+def train_and_evaluate(args):
+  """Run the training and evaluate using the high level API."""
   train_input = lambda: model.input_fn(
-      hparams.train_files,
-      num_epochs=hparams.num_epochs,
-      batch_size=hparams.train_batch_size
+      args.train_files,
+      num_epochs=args.num_epochs,
+      batch_size=args.train_batch_size
   )
   # (Chet:) Therefore, train_input() always = model.input_fn(), lambda without variable.
 
 
   # Don't shuffle evaluation data
   eval_input = lambda: model.input_fn(
-      hparams.eval_files,
-      batch_size=hparams.eval_batch_size,
+    args.eval_files,
+      batch_size=args.eval_batch_size,
       shuffle=False
   )
 
-  train_spec = tf.estimator.TrainSpec(train_input,
-                                      max_steps=hparams.train_steps
-                                      )
+  train_spec = tf.estimator.TrainSpec(
+      train_input, max_steps=args.train_steps)
 
-  exporter = tf.estimator.FinalExporter('census',
-          model.SERVING_FUNCTIONS[hparams.export_format])
-  eval_spec = tf.estimator.EvalSpec(eval_input,
-                                    steps=hparams.eval_steps,
-                                    exporters=[exporter],
-                                    name='census-eval'
-                                    )
+  exporter = tf.estimator.FinalExporter(
+      'census', model.SERVING_FUNCTIONS[args.export_format])
+  eval_spec = tf.estimator.EvalSpec(
+      eval_input,
+      steps=args.eval_steps,
+      exporters=[exporter],
+      name='census-eval')
 
   model_fn = model.generate_model_fn(
-                embedding_size=hparams.embedding_size,
-                # Construct layers sizes with exponetial decay
-                hidden_units=[
-                    max(2, int(hparams.first_layer_size *
-                               hparams.scale_factor**i))
-                    for i in range(hparams.num_layers)
-                ],
-                learning_rate=hparams.learning_rate)
+      embedding_size=args.embedding_size,
+      # Construct layers sizes with exponential decay.
+      hidden_units=[
+          max(2, int(args.first_layer_size * args.scale_factor**i))
+          for i in range(args.num_layers)
+      ],
+      learning_rate=args.learning_rate)
 
-  estimator = tf.estimator.Estimator(model_fn=model_fn, model_dir=hparams.job_dir)
-  tf.estimator.train_and_evaluate(estimator,
-                                  train_spec,
-                                  eval_spec)
+  estimator = tf.estimator.Estimator(
+      model_fn=model_fn, model_dir=args.job_dir)
+  tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  # Input Arguments
+  # Input Arguments.
   parser.add_argument(
       '--train-files',
-      help='GCS or local paths to training data',
+      help='GCS file or local paths to training data',
       nargs='+',
-      required=True
-  )
+      default='gs://cloud-samples-data/ml-engine/census/data/adult.data.csv')
+  parser.add_argument(
+      '--eval-files',
+      help='GCS file or local paths to evaluation data',
+      nargs='+',
+      default='gs://cloud-samples-data/ml-engine/census/data/adult.test.csv')
+  parser.add_argument(
+      '--job-dir',
+      help='GCS location to write checkpoints and export models',
+      default='/tmp/census-customestimator')
   parser.add_argument(
       '--num-epochs',
       help="""\
@@ -87,13 +101,6 @@ if __name__ == '__main__':
       type=int,
       default=40
   )
-  parser.add_argument(
-      '--eval-files',
-      help='GCS or local paths to evaluation data',
-      nargs='+',
-      required=True
-  )
-  # Training arguments
   parser.add_argument(
       '--embedding-size',
       help='Number of embedding dimensions for categorical columns',
@@ -148,8 +155,8 @@ if __name__ == '__main__':
       Steps to run the training job for. If --num-epochs is not specified,
       this must be. Otherwise the training job will run indefinitely.\
       """,
-      type=int
-  )
+      default=100,
+      type=int)
   parser.add_argument(
       '--eval-steps',
       help="""\
@@ -166,7 +173,7 @@ if __name__ == '__main__':
       default='CSV'
   )
 
-  args = parser.parse_args()
+  args, _ = parser.parse_known_args()
 
   # Set python level verbosity
   tf.logging.set_verbosity(args.verbosity)
@@ -174,6 +181,5 @@ if __name__ == '__main__':
   os.environ['TF_CPP_MIN_LOG_LEVEL'] = str(
       tf.logging.__dict__[args.verbosity] / 10)
 
-  # Run the training job
-  hparams=hparam.HParams(**args.__dict__)
-  run_experiment(hparams)
+  # Run the training job.
+  train_and_evaluate(args)
