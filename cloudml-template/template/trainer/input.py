@@ -32,7 +32,7 @@ import task
 
 
 def parse_csv(csv_row, is_serving=False):
-    """Takes the string input tensor (csv) and returns a dict of rank-2 tensors.
+    """Takes the string input tensor (csv) and returns a dict of rank-2 tensors. Just append the columns_names to data
 
     Takes a rank-1 tensor and converts it into rank-2 tensor, with respect to its data type
     (inferred from the metadata)
@@ -154,7 +154,7 @@ def get_features_target_tuple(features):
     # get target feature
     target = features.pop(metadata.TARGET_NAME)
 
-    return features, target
+    return features, target  # {string:tensors}, {tensor}
 
 
 # **************************************************************************
@@ -215,14 +215,14 @@ def generate_input_fn(file_names_pattern,
         if file_encoding == 'csv':
             dataset = data.TextLineDataset(filenames=file_names)
             dataset = dataset.skip(skip_header_lines)
-            dataset = dataset.map(lambda csv_row: parse_csv(csv_row))
+            dataset = dataset.map(lambda csv_row: parse_csv(csv_row))  # just append column_names to data
 
         else:
             dataset = data.TFRecordDataset(filenames=file_names)
             dataset = dataset.map(lambda tf_example: parse_tf_example(tf_example),
                                   num_parallel_calls=num_threads)
 
-        dataset = dataset.map(lambda features: get_features_target_tuple(features),
+        dataset = dataset.map(lambda features: get_features_target_tuple(features),  # features here is a dictionary
                               num_parallel_calls=num_threads)
         dataset = dataset.map(lambda features, target: (process_features(features), target),
                               num_parallel_calls=num_threads)
@@ -237,7 +237,7 @@ def generate_input_fn(file_names_pattern,
         iterator = dataset.make_one_shot_iterator()
         features, target = iterator.get_next()
 
-        return features, target
+        return features, target    # features: dictionary, target: value
 
     return _input_fn
 

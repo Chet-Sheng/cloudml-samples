@@ -17,7 +17,7 @@ import os
 
 import tensorflow as tf
 
-import trainer.model as model
+import trainer.My_Model as model
 
 
 def train_and_evaluate(args):
@@ -63,23 +63,25 @@ def train_and_evaluate(args):
 
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser()
-  # Input Arguments.
-  parser.add_argument(
-      '--train-files',
-      help='GCS file or local paths to training data',
-      nargs='+',
-      default='gs://cloud-samples-data/ml-engine/census/data/adult.data.csv')
-  parser.add_argument(
-      '--eval-files',
-      help='GCS file or local paths to evaluation data',
-      nargs='+',
-      default='gs://cloud-samples-data/ml-engine/census/data/adult.test.csv')
-  parser.add_argument(
-      '--job-dir',
-      help='GCS location to write checkpoints and export models',
-      default='/tmp/census-customestimator')
-  parser.add_argument(
+    parser = argparse.ArgumentParser()
+    # Input Arguments.
+    parser.add_argument(
+        '--train-files',
+        help='GCS file or local paths to training data',
+        nargs='+',
+        default='gs://cloud-samples-data/ml-engine/census/data/adult.data.csv')
+    parser.add_argument(
+        '--eval-files',
+        help='GCS file or local paths to evaluation data',
+        nargs='+',
+        default='gs://cloud-samples-data/ml-engine/census/data/adult.test.csv')
+    parser.add_argument(
+        '--job-dir',
+        help='GCS location to write checkpoints and export models',
+        default='/tmp/census-customestimator',
+        required=True
+    )
+    parser.add_argument(
       '--num-epochs',
       help="""\
       Maximum number of training data epochs on which to train.
@@ -88,55 +90,50 @@ if __name__ == '__main__':
       whichever occurs first. If unspecified will run for --max-steps.\
       """,
       type=int,
-  )
-  parser.add_argument(
+    )
+    parser.add_argument(
       '--train-batch-size',
       help='Batch size for training steps',
       type=int,
       default=40
-  )
-  parser.add_argument(
+    )
+    parser.add_argument(
       '--eval-batch-size',
       help='Batch size for evaluation steps',
       type=int,
       default=40
-  )
-  parser.add_argument(
+    )
+    parser.add_argument(
       '--embedding-size',
       help='Number of embedding dimensions for categorical columns',
       default=8,
       type=int
-  )
-  parser.add_argument(
+    )
+    parser.add_argument(
       '--learning-rate',
       help='Learning rate for the optimizer',
       default=0.1,
       type=float
-  )
-  parser.add_argument(
+    )
+    parser.add_argument(
       '--first-layer-size',
       help='Number of nodes in the first layer of the DNN',
       default=100,
       type=int
-  )
-  parser.add_argument(
+    )
+    parser.add_argument(
       '--num-layers',
       help='Number of layers in the DNN',
       default=4,
       type=int
-  )
-  parser.add_argument(
+    )
+    parser.add_argument(
       '--scale-factor',
       help='How quickly should the size of the layers in the DNN decay',
       default=0.7,
       type=float
-  )
-  parser.add_argument(
-      '--job-dir',
-      help='GCS location to write checkpoints and export models',
-      required=True
-  )
-  parser.add_argument(
+    )
+    parser.add_argument(
       '--verbosity',
       choices=[
           'DEBUG',
@@ -147,9 +144,9 @@ if __name__ == '__main__':
       ],
       default='INFO',
       help='Set logging verbosity'
-  )
-  # Experiment arguments
-  parser.add_argument(
+    )
+    # Experiment arguments
+    parser.add_argument(
       '--train-steps',
       help="""\
       Steps to run the training job for. If --num-epochs is not specified,
@@ -157,7 +154,7 @@ if __name__ == '__main__':
       """,
       default=100,
       type=int)
-  parser.add_argument(
+    parser.add_argument(
       '--eval-steps',
       help="""\
       Number of steps to run evalution for at each checkpoint.
@@ -165,21 +162,21 @@ if __name__ == '__main__':
       """,
       default=None,
       type=int
-  )
-  parser.add_argument(
+    )
+    parser.add_argument(
       '--export-format',
       help='The input format of the exported SavedModel binary',
       choices=['JSON', 'CSV', 'EXAMPLE'],
       default='CSV'
-  )
+    )
 
-  args, _ = parser.parse_known_args()
+    args, _ = parser.parse_known_args()
 
-  # Set python level verbosity
-  tf.logging.set_verbosity(args.verbosity)
-  # Set C++ Graph Execution level verbosity
-  os.environ['TF_CPP_MIN_LOG_LEVEL'] = str(
+    # Set python level verbosity
+    tf.logging.set_verbosity(args.verbosity)
+    # Set C++ Graph Execution level verbosity
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = str(
       tf.logging.__dict__[args.verbosity] / 10)
 
-  # Run the training job.
-  train_and_evaluate(args)
+    # Run the training job.
+    train_and_evaluate(args)

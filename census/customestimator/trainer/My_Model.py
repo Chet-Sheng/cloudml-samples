@@ -93,199 +93,198 @@ UNUSED_COLUMNS = set(CSV_COLUMNS) - {col.name for col in INPUT_COLUMNS} - \
 def generate_model_fn(embedding_size=8,
                       hidden_units=[100, 70, 40, 20],
                       learning_rate=0.1):
-  """Generates a model_fn for a feed forward classification network.
+    """Generates a model_fn for a feed forward classification network.
 
-  Takes hyperparameters that define the model and returns a model_fn that
-  generates a spec from input Tensors.
-
-  Args:
-    hidden_units (list): Hidden units of the DNN.
-    learning_rate (float): Learning rate for the SGD.
-    embedding_size (int): Dimenstionality of embeddings for high dimension
-       categorical columns.
-
-  Returns:
-    A model_fn.
-    See https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator
-    for details on the signature of the model_fn.
-  """
-
-  def _model_fn(mode, features, labels):
-      # correspond to (features, features.pop(LABEL_COLUMN))
-    """A model_fn that builds the DNN classification spec
+    Takes hyperparameters that define the model and returns a model_fn that
+    generates a spec from input Tensors.
 
     Args:
-      mode (tf.estimator.ModeKeys): One of ModeKeys.(TRAIN|PREDICT|INFER) which
-         is used to selectively add operations to the graph.
-      features (Mapping[str:Tensor]): Input features for the model.
-      labels (Tensor): Label Tensor.
+        hidden_units (list): Hidden units of the DNN.
+        learning_rate (float): Learning rate for the SGD.
+        embedding_size (int): Dimenstionality of embeddings for high dimension categorical columns.
 
     Returns:
-      tf.estimator.EstimatorSpec which defines the model. Will have different
-      populated members depending on `mode`. See:
-        https://www.tensorflow.org/api_docs/python/tf/estimator/EstimatorSpec
-      for details.
+        A model_fn.
+        See https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator
+        for details on the signature of the model_fn.
     """
-    (gender, race, education, marital_status, relationship,
-     workclass, occupation, native_country, age,
-     education_num, capital_gain, capital_loss, hours_per_week) = INPUT_COLUMNS
 
-    transformed_columns = [
-        # Use indicator columns for low dimensional vocabularies
-        tf.feature_column.indicator_column(workclass),
-        tf.feature_column.indicator_column(education),
-        tf.feature_column.indicator_column(marital_status),
-        tf.feature_column.indicator_column(gender),
-        tf.feature_column.indicator_column(relationship),
-        tf.feature_column.indicator_column(race),
+    def _model_fn(mode, features, labels):
+          # correspond to (features, features.pop(LABEL_COLUMN))
+        """A model_fn that builds the DNN classification spec
 
-        # Use embedding columns for high dimensional vocabularies
-        tf.feature_column.embedding_column(
-            native_country, dimension=embedding_size),
-        tf.feature_column.embedding_column(
-            occupation, dimension=embedding_size),
-        age,
-        education_num,
-        capital_gain,
-        capital_loss,
-        hours_per_week,
-    ]
-    # print('---------------------------------------------------------------')
-    # print(transformed_columns)
-    # print('---------------------------------------------------------------')
+        Args:
+          mode (tf.estimator.ModeKeys): One of ModeKeys.(TRAIN|PREDICT|INFER) which
+             is used to selectively add operations to the graph.
+          features (Mapping[str:Tensor]): Input features for the model.
+          labels (Tensor): Label Tensor.
 
-    inputs = tf.feature_column.input_layer(features, transformed_columns)
-    label_values = tf.constant(LABELS)
+        Returns:
+          tf.estimator.EstimatorSpec which defines the model. Will have different
+          populated members depending on `mode`. See:
+            https://www.tensorflow.org/api_docs/python/tf/estimator/EstimatorSpec
+          for details.
+        """
+        (gender, race, education, marital_status, relationship,
+         workclass, occupation, native_country, age,
+         education_num, capital_gain, capital_loss, hours_per_week) = INPUT_COLUMNS
 
-    # print('---------------------------------------------------------------')
-    # print('features:',features)
-    # print('---------------------------------------------------------------')
-    # print('inputs:',inputs)
-    # print('---------------------------------------------------------------')
-    # print('label_values:',label_values)
-    # print('---------------------------------------------------------------')
+        transformed_columns = [
+            # Use indicator columns for low dimensional vocabularies
+            tf.feature_column.indicator_column(workclass),
+            tf.feature_column.indicator_column(education),
+            tf.feature_column.indicator_column(marital_status),
+            tf.feature_column.indicator_column(gender),
+            tf.feature_column.indicator_column(relationship),
+            tf.feature_column.indicator_column(race),
 
-    # Build the DNN
-    curr_layer = inputs
+            # Use embedding columns for high dimensional vocabularies
+            tf.feature_column.embedding_column(
+                native_country, dimension=embedding_size),
+            tf.feature_column.embedding_column(
+                occupation, dimension=embedding_size),
+            age,
+            education_num,
+            capital_gain,
+            capital_loss,
+            hours_per_week,
+        ]
+        # print('---------------------------------------------------------------')
+        # print(transformed_columns)
+        # print('---------------------------------------------------------------')
 
-    for layer_size in hidden_units:
-      curr_layer = tf.layers.dense(
-          curr_layer,
-          layer_size,
-          activation=tf.nn.relu,
-          # This initializer prevents variance from exploding or vanishing when
-          # compounded through different sized layers.
-          kernel_initializer=tf.contrib.layers.variance_scaling_initializer(),
-      )
+        inputs = tf.feature_column.input_layer(features, transformed_columns)
+        label_values = tf.constant(LABELS)
 
-    # Add the output layer
-    logits = tf.layers.dense(
-        curr_layer,
-        len(LABELS),
-        # Do not use ReLU on last layer
-        activation=None,
-        kernel_initializer=tf.contrib.layers.variance_scaling_initializer()
-    )
+        # print('---------------------------------------------------------------')
+        # print('features:',features)
+        # print('---------------------------------------------------------------')
+        # print('inputs:',inputs)
+        # print('---------------------------------------------------------------')
+        # print('label_values:',label_values)
+        # print('---------------------------------------------------------------')
 
-    if mode in (Modes.PREDICT, Modes.EVAL):
-      probabilities = tf.nn.softmax(logits)
-      predicted_indices = tf.argmax(probabilities, 1)
+        # Build the DNN
+        curr_layer = inputs
 
-    if mode in (Modes.TRAIN, Modes.EVAL):
-      # Convert the string label column to indices
-      # Build a lookup table inside the graph
-      table = tf.contrib.lookup.index_table_from_tensor(label_values)
+        for layer_size in hidden_units:
+            curr_layer = tf.layers.dense(
+              curr_layer,
+              layer_size,
+              activation=tf.nn.relu,
+              # This initializer prevents variance from exploding or vanishing when
+              # compounded through different sized layers.
+              kernel_initializer=tf.contrib.layers.variance_scaling_initializer(),
+            )
 
-      # Use the lookup table to convert string labels to ints
-      label_indices = table.lookup(labels)
-      # Returns a lookup table that converts a string tensor into int64 IDs.
-      # https://www.tensorflow.org/api_docs/python/tf/contrib/lookup/index_table_from_tensor
+        # Add the output layer
+        logits = tf.layers.dense(
+            curr_layer,
+            len(LABELS),
+            # Do not use ReLU on last layer
+            activation=None,
+            kernel_initializer=tf.contrib.layers.variance_scaling_initializer()
+        )
 
-      # Make labels a vector
-      label_indices_vector = tf.squeeze(label_indices, axis=[1])
+        if mode in (Modes.PREDICT, Modes.EVAL):
+            probabilities = tf.nn.softmax(logits)
+            predicted_indices = tf.argmax(probabilities, 1)
 
-      # global_step is necessary in eval to correctly load the step
-      # of the checkpoint we are evaluating
-      global_step = tf.contrib.framework.get_or_create_global_step()
-      loss = tf.reduce_mean(
-          tf.nn.sparse_softmax_cross_entropy_with_logits(
-              logits=logits, labels=label_indices_vector))
-      tf.summary.scalar('loss', loss)
+        if mode in (Modes.TRAIN, Modes.EVAL):
+            # Convert the string label column to indices
+            # Build a lookup table inside the graph
+            table = tf.contrib.lookup.index_table_from_tensor(label_values)
 
-    if mode == Modes.PREDICT:
-      # Convert predicted_indices back into strings
-      predictions = {
-          'classes': tf.gather(label_values, predicted_indices),
-          'scores': tf.reduce_max(probabilities, axis=1)
-      }
-      export_outputs = {
-          'prediction': tf.estimator.export.PredictOutput(predictions)
-      }
-      return tf.estimator.EstimatorSpec(
-          mode, predictions=predictions, export_outputs=export_outputs)
+            # Use the lookup table to convert string labels to ints
+            label_indices = table.lookup(labels)
+            # Returns a lookup table that converts a string tensor into int64 IDs.
+            # https://www.tensorflow.org/api_docs/python/tf/contrib/lookup/index_table_from_tensor
 
-    if mode == Modes.TRAIN:
-      # Build training operation.
-      train_op = tf.train.FtrlOptimizer(
-          learning_rate=learning_rate,
-          l1_regularization_strength=3.0,
-          l2_regularization_strength=10.0
-      ).minimize(loss, global_step=global_step)
-      return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+            # Make labels a vector
+            label_indices_vector = tf.squeeze(label_indices, axis=[1])
 
-    if mode == Modes.EVAL:
-      # Return accuracy and area under ROC curve metrics
-      # See https://en.wikipedia.org/wiki/Receiver_operating_characteristic
-      # See https://www.kaggle.com/wiki/AreaUnderCurve
-      labels_one_hot = tf.one_hot(
-          label_indices_vector,
-          depth=label_values.shape[0],
-          on_value=True,
-          off_value=False,
-          dtype=tf.bool
-      )
-      eval_metric_ops = {
-          'accuracy': tf.metrics.accuracy(label_indices, predicted_indices),
-          'auroc': tf.metrics.auc(labels_one_hot, probabilities)
-      }
-      return tf.estimator.EstimatorSpec(
-          mode, loss=loss, eval_metric_ops=eval_metric_ops)
-  return _model_fn
+            # global_step is necessary in eval to correctly load the step
+            # of the checkpoint we are evaluating
+            global_step = tf.contrib.framework.get_or_create_global_step()
+            loss = tf.reduce_mean(
+              tf.nn.sparse_softmax_cross_entropy_with_logits(
+                  logits=logits, labels=label_indices_vector))
+            tf.summary.scalar('loss', loss)
+
+        if mode == Modes.PREDICT:
+            # Convert predicted_indices back into strings
+            predictions = {
+              'classes': tf.gather(label_values, predicted_indices),
+              'scores': tf.reduce_max(probabilities, axis=1)
+            }
+            export_outputs = {
+              'prediction': tf.estimator.export.PredictOutput(predictions)
+            }
+            return tf.estimator.EstimatorSpec(
+              mode, predictions=predictions, export_outputs=export_outputs)
+
+        if mode == Modes.TRAIN:
+            # Build training operation.
+            train_op = tf.train.FtrlOptimizer(
+              learning_rate=learning_rate,
+              l1_regularization_strength=3.0,
+              l2_regularization_strength=10.0
+            ).minimize(loss, global_step=global_step)
+            return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+
+        if mode == Modes.EVAL:
+            # Return accuracy and area under ROC curve metrics
+            # See https://en.wikipedia.org/wiki/Receiver_operating_characteristic
+            # See https://www.kaggle.com/wiki/AreaUnderCurve
+            labels_one_hot = tf.one_hot(
+              label_indices_vector,
+              depth=label_values.shape[0],
+              on_value=True,
+              off_value=False,
+              dtype=tf.bool
+            )
+            eval_metric_ops = {
+              'accuracy': tf.metrics.accuracy(label_indices, predicted_indices),
+              'auroc': tf.metrics.auc(labels_one_hot, probabilities)
+            }
+            return tf.estimator.EstimatorSpec(
+              mode, loss=loss, eval_metric_ops=eval_metric_ops)
+    return _model_fn
 
 
 def csv_serving_input_fn():
-  """Build the serving inputs."""
-  csv_row = tf.placeholder(
+    """Build the serving inputs."""
+    csv_row = tf.placeholder(
       shape=[None],
       dtype=tf.string
-  )
-  features = parse_csv(csv_row)
-  # Ignore label column
-  features.pop(LABEL_COLUMN)
-  return tf.estimator.export.ServingInputReceiver(
+    )
+    features = parse_csv(csv_row)
+    # Ignore label column
+    features.pop(LABEL_COLUMN)
+    return tf.estimator.export.ServingInputReceiver(
       features, {'csv_row': csv_row})
 
 
 def example_serving_input_fn():
-  """Build the serving inputs."""
-  example_bytestring = tf.placeholder(
+    """Build the serving inputs."""
+    example_bytestring = tf.placeholder(
       shape=[None],
       dtype=tf.string,
-  )
-  features = tf.parse_example(
+    )
+    features = tf.parse_example(
       example_bytestring,
       tf.feature_column.make_parse_example_spec(INPUT_COLUMNS)
-  )
-  return tf.estimator.export.ServingInputReceiver(
+    )
+    return tf.estimator.export.ServingInputReceiver(
       features, {'example_proto': example_bytestring})
 
 
 def json_serving_input_fn():
-  """Build the serving inputs."""
-  inputs = {}
-  for feat in INPUT_COLUMNS:
-    inputs[feat.name] = tf.placeholder(shape=[None], dtype=feat.dtype)
-  return tf.estimator.export.ServingInputReceiver(inputs, inputs)
+    """Build the serving inputs."""
+    inputs = {}
+    for feat in INPUT_COLUMNS:
+        inputs[feat.name] = tf.placeholder(shape=[None], dtype=feat.dtype)
+    return tf.estimator.export.ServingInputReceiver(inputs, inputs)
 
 
 SERVING_FUNCTIONS = {
@@ -296,38 +295,38 @@ SERVING_FUNCTIONS = {
 
 
 def parse_csv(rows_string_tensor):
-  """Takes the string input tensor and returns a dict of rank-2 tensors."""
-  # Takes a rank-1 tensor and converts it into rank-2 tensor
-  # Example if the data is ['csv,line,1', 'csv,line,2', ..] to
-  # [['csv,line,1'], ['csv,line,2']] which after parsing will result in a
-  # tuple of tensors: [['csv'], ['csv']], [['line'], ['line']], [[1], [2]]
+    """Takes the string input tensor and returns a dict of rank-2 tensors."""
+    # Takes a rank-1 tensor and converts it into rank-2 tensor
+    # Example if the data is ['csv,line,1', 'csv,line,2', ..] to
+    # [['csv,line,1'], ['csv,line,2']] which after parsing will result in a
+    # tuple of tensors: [['csv'], ['csv']], [['line'], ['line']], [[1], [2]]
 
-  # tf.decode_csv: Convert CSV records to tensors. Each column maps to one tensor.
-  columns = tf.decode_csv(
+    # tf.decode_csv: Convert CSV records to tensors. Each column maps to one tensor.
+    columns = tf.decode_csv(
       rows_string_tensor, record_defaults=CSV_COLUMN_DEFAULTS)
       # A list of Tensor objects. Has the same type as record_defaults. Each tensor will have the same shape as records.
       # https://www.tensorflow.org/api_docs/python/tf/decode_csv
 
-  features = dict(zip(CSV_COLUMNS, columns))
-  # print('features in parse_csv', features)
-  # Remove unused columns
-  for col in UNUSED_COLUMNS:
-    features.pop(col)
+    features = dict(zip(CSV_COLUMNS, columns))
+    # print('features in parse_csv', features)
+    # Remove unused columns
+    for col in UNUSED_COLUMNS:
+        features.pop(col)
 
-  for key, value in six.iteritems(features):
-    features[key] = tf.expand_dims(features[key], -1)
-  return features
+    for key, value in six.iteritems(features):
+       features[key] = tf.expand_dims(features[key], -1)
+    return features
 
 def input_fn(filenames,
                       num_epochs=None,
                       shuffle=True,
                       skip_header_lines=0,
                       batch_size=200):
-  """Generates features and labels for training or evaluation.
-  This uses the input pipeline based approach using file name queue
-  to read data so that entire data is not loaded in memory.
+    """Generates features and labels for training or evaluation.
+    This uses the input pipeline based approach using file name queue
+    to read data so that entire data is not loaded in memory.
 
-  Args:
+    Args:
       filenames: [str] list of CSV files to read data from.
       num_epochs: int how many times through to read the data.
         If None will loop through data indefinitely
@@ -338,17 +337,17 @@ def input_fn(filenames,
         in CSV files.
       batch_size: int First dimension size of the Tensors returned by
         input_fn
-  Returns:
+    Returns:
       A (features, indices) tuple where features is a dictionary of
         Tensors, and indices is a single Tensor of label indices.
-  """
+    """
 
-  dataset = tf.data.TextLineDataset(filenames).skip(skip_header_lines).map(parse_csv)
+    dataset = tf.data.TextLineDataset(filenames).skip(skip_header_lines).map(parse_csv)
 
-  if shuffle:
-    dataset = dataset.shuffle(buffer_size=batch_size * 10)
-  dataset = dataset.repeat(num_epochs)
-  dataset = dataset.batch(batch_size)
-  iterator = dataset.make_one_shot_iterator()
-  features = iterator.get_next()
-  return features, features.pop(LABEL_COLUMN)
+    if shuffle:
+        dataset = dataset.shuffle(buffer_size=batch_size * 10)
+    dataset = dataset.repeat(num_epochs)
+    dataset = dataset.batch(batch_size)
+    iterator = dataset.make_one_shot_iterator()
+    features = iterator.get_next()
+    return features, features.pop(LABEL_COLUMN)
